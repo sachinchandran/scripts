@@ -133,6 +133,11 @@ startup_apache() {
 	systemctl start httpd.service
 }
 
+initialize_wp() {
+	current_ip=`ip route get 8.8.8.8 | awk 'NR==1 {print $NF}'`
+	curl --data "user_name=grab&admin_password=Gr@bpass001&admin_password2=Gr@bpass001&admin_email=test@noemail.com&blog_public=checked&Submit=submit" "http://${current_ip}/wp-admin/install.php?step=2"
+}
+
 install_wordpress() {
 	echo "Starting WordPress Installation..."
 	MYSQL_PASS=$1
@@ -143,6 +148,7 @@ install_wordpress() {
 	configure_wp $WP_DB_PASS
 	setup_htaccess
 	startup_apache
+	initialize_wp
 }
 
 mysql_secure() {
