@@ -193,6 +193,11 @@ echo "$SECURE_MYSQL"
 ###
 ### Main
 ###
+
+usage() {
+	echo "Fill in howto here.."
+}
+
 main() {
 
 	os_type_detect
