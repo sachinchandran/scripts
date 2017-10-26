@@ -194,36 +194,184 @@ echo "$SECURE_MYSQL"
 ### Main
 ###
 
+initialize() {
+	os_type_detect
+        echo $_OSTYPE
+
+        update_packages
+        install_a_package "telnet"
+        install_a_package "expect"
+        install_a_package "curl"
+        install_a_package "wget"
+	is_initialized=1
+}
+
 usage() {
-	echo "Fill in howto here.."
+	echo "Usage:"
+	echo "	./install_wordpress.sh"
+	echo "		-m|--mysql 	Install Mysql"
+	echo " 		-a|--apache	Install Apache"
+	echo " 		-p|--php      	Install PHP"
+	echo "		-h|--help 	Print this message"
+	echo "		--mysqlrootpassword	MySQL root password(mandatory)"
+	echo "		--wpdbpassword		MySQL DB password for Wordpress"
 }
 
 main() {
+	
+	if [ "$#" -eq 0 ]
+	then
+		usage
+		exit 1
+	fi
+	echo "$@"
 
-	os_type_detect
-	echo $_OSTYPE
+	is_initialized=0
+	inst_mysql=0
+	inst_apache=0
+	inst_php=0
 
-	update_packages
-	install_a_package "telnet"
+	while :;
+	do
+		case $1 in 
+			-h|-\?|--help)
+				usage
+				exit 0
+				;;
+			-m|--mysql)
+				inst_mysql=1
+				shift
+				;;
+			-a|--apache)
+				inst_apache=1
+				shift
+				;;
+			-p|--php)
+				inst_php=1
+				shift
+				;;
+			--mysqlrootpassword=?*)
+				mysqlrootpassword=${1#*=}
+				shift
+				;;
+			--mysqlrootpassword=)
+				printf '%s\n' 'ERROR: --mysqlrootpassword should have a value!' >&2
+				usage
+				exit 1
+				;;
+			--mysqlrootpassword)
+				printf '%s\n' 'ERROR: --mysqlrootpassword should have a value!' >&2
+				usage
+				exit 1
+				;;
+			--wpdbpassword=?*)
+				wpdbpassword=${1#*=}
+				shift
+				;;
+			--wpdbpassword=)
+				printf '%s\n' 'ERROR: --wpdbpassword should have a value!' >&2
+				usage
+				exit 1
+				;;
+			--wpdbpassword)
+				printf '%s\n' 'ERROR: --wpdbpassword should have a value!' >&2
+                                usage
+                                exit 1
+                                ;;
+			--)
+            			shift
+            			break
+            			;;
+        		-?*)
+            			printf '%s\n' 'WARN: Unknown option (ignored): %s\n' >&2
+				usage
+				exit 1
+            			;;
+        		*)
+            			break
+    		esac
 
-####### Remove existing DB
+    		#shift
+	done
 
-	install_db
+#	while getopts 'mysql,apache,php,help' flag; do
+#		case "${flag}" in
+#			mysql)	if [ ${is_initialized} -eq 0 ]
+#				then
+#					initialize
+#				fi
+#				install_db
+#				mysql_password="$1"
+#				mysql_secure $mysql_password
+#				;;
+#			apache)	if [ ${is_initialized} -eq 0 ]
+#                                then
+#                                        initialize
+#                                fi
+#				install_apache
+#				;;
+#			php) 	if [ ${is_initialized} -eq 0 ]
+#                                then
+#                                        initialize
+#                                fi
+#				install_php
+#				;;
+#			help)	usage
+#				exit 0
+#				;;
+#			*)	usage
+#				exit 1
+#				;;
+#		esac
+#	done
+#	install_db
 
-	install_a_package "expect"
+#	mysql_password="$1"
 
-	mysql_password="$1"
-	wordpress_db_password="$2"
+	if [ -z ${mysqlrootpassword} ]
+	then
+		printf '%s\n' 'ERROR: mysqlrootpassword is not defined!' >&2
+		usage
+		exit 1
+	fi
 
-	mysql_secure $mysql_password
+	if [ -z ${wpdbpassword} ]
+	then
+		printf '%s\n' 'ERROR: wpdbpassword is not defined!' >&2
+		usage
+		exit 1
+	fi
 
-	install_a_package "curl"
-	install_a_package "wget"
+	if [ ${is_initialized} -eq 0 ]
+        then
+       		initialize
+        fi
 
-	install_apache
-	install_php
+	if [ ${inst_mysql} -eq 1 ]
+	then
+		install_db
+		mysql_secure $mysqlrootpassword
+	fi
+	
+	if [ ${inst_apache} -eq 1 ]
+	then
+		install_apache
+	fi
+	
+	if [ ${inst_php} -eq 1 ]
+	then
+		install_php
+	fi
 
-	install_wordpress $mysql_password $wordpress_db_password
+
+#	wordpress_db_password="$2"
+
+#	mysql_secure $mysql_password
+
+#	install_apache
+#	install_php
+
+	install_wordpress $mysqlrootpassword $wpdbpassword
 }
 
 main "$@"
