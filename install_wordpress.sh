@@ -193,28 +193,32 @@ echo "$SECURE_MYSQL"
 ###
 ### Main
 ###
+main() {
 
-os_type_detect
-echo $_OSTYPE
+	os_type_detect
+	echo $_OSTYPE
 
-update_packages
-install_a_package "telnet"
+	update_packages
+	install_a_package "telnet"
 
 ####### Remove existing DB
 
-install_db
+	install_db
 
-install_a_package "expect"
+	install_a_package "expect"
 
-mysql_password="$1"
-wordpress_db_password="$2"
+	mysql_password="$1"
+	wordpress_db_password="$2"
 
-mysql_secure $mysql_password
+	mysql_secure $mysql_password
 
-install_a_package "curl"
-install_a_package "wget"
+	install_a_package "curl"
+	install_a_package "wget"
 
-install_apache
-install_php
+	install_apache
+	install_php
 
-install_wordpress $mysql_password $wordpress_db_password
+	install_wordpress $mysql_password $wordpress_db_password
+}
+
+main "$@"
