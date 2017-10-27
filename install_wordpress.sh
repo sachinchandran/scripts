@@ -51,7 +51,8 @@ install_a_package() {
 install_db() {
 	echo "Install DB..."
 	_exec_ YUM	"yum install -y mariadb-server"
-	_exec_ DPKG	"apt-get install software-properties-common"
+	_exec_ DPKG	"apt-get install -y software-properties-common"
+	_exec_ DPKG	"apt-get install -y dirmngr"
 	_exec_ DPKG	"apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8"
 	_exec_ DPKG	"add-apt-repository 'deb [arch=amd64] http://www.ftp.saix.net/DB/mariadb/repo/10.1/debian stretch main'"
 	_exec_ DPKG	"apt-get update"
