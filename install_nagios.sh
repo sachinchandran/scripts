@@ -113,7 +113,7 @@ install_nagios() {
 
 	cd nagios-4.2.0
 	_exec_ YUM 	"./configure --with-command-group=nagcmd"
-	_exec_ DPKG	"./configure --with-command-group=nagcmd -–with-mail=/usr/bin/sendmail --with-httpd-conf=/etc/apache2/"
+	_exec_ DPKG	"./configure --with-command-group=nagcmd --with-httpd-conf=/etc/apache2/"
 
 	make all
 	make install
@@ -135,14 +135,15 @@ install_nagios() {
 	_exec_ YUM	"systemctl stop httpd"	
 	_exec_ YUM	"systemctl start httpd"	
 
-	_exec_ DPKG	"cp /etc/init.d/skeleton /etc/init.d/nagios"
-	_exec_ DPKG	"echo 'DESC=\"Nagios\"' >> /etc/init.d/nagios"
-	_exec_ DPKG	"echo 'NAME=nagios' >> /etc/init.d/nagios"
-	_exec_ DPKG	"echo \"DAEMON=/usr/local/nagios/bin/$NAME\" >> /etc/init.d/nagios"
-	_exec_ DPKG	"echo 'DAEMON_ARGS=\"-d /usr/local/nagios/etc/nagios.cfg\"' >> /etc/init.d/nagios"
-	_exec_ DPKG	"echo \"PIDFILE=/usr/local/nagios/var/$NAME.lock\" >> /etc/init.d/nagios"
+#	_exec_ DPKG	"cp /etc/init.d/skeleton /etc/init.d/nagios"
+#	_exec_ DPKG	"echo 'DESC=\"Nagios\"' >> /etc/init.d/nagios"
+#	_exec_ DPKG	"echo 'NAME=nagios' >> /etc/init.d/nagios"
+#	_exec_ DPKG	"echo \"DAEMON=/usr/local/nagios/bin/$NAME\" >> /etc/init.d/nagios"
+#	_exec_ DPKG	"echo 'DAEMON_ARGS=\"-d /usr/local/nagios/etc/nagios.cfg\"' >> /etc/init.d/nagios"
+#	_exec_ DPKG	"echo \"PIDFILE=/usr/local/nagios/var/$NAME.lock\" >> /etc/init.d/nagios"
+	_exec_ DPKG	"systemctl reload apache2"
 	_exec_ DPKG	"systemctl restart apache2"
-	_exec_ DPKG	"systemctl restart nagios"
+	_exec_ DPKG	"/etc/init.d/nagios restart"
 
 	htpasswd -cb /usr/local/nagios/etc/htpasswd.users nagiosadmin nagiosadmin
 
