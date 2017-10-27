@@ -76,6 +76,10 @@ install_php() {
 	echo "Installing php..."
 	_exec_ YUM	"yum install -y php php-mysql"
 	_exec_ DPKG	"apt-get install -y php7.0 libapache2-mod-php7.0 php7.0-mysql php7.0-gd php7.0-opcache"
+	_exec_ YUM 	"systemctl stop httpd"
+	_exec_ YUM	"systemctl start httpd"
+	_exec_ DPKG	"systemctl stop apache2"
+	_exec_ DPKG	"systemctl start apache2"
 }
 
 setup_wp_mysql_user() {
@@ -129,7 +133,10 @@ open_firewall() {
 
 startup_apache() {
 	open_firewall
-	sed -i "/^<Directory \"\/var\/www\/html\">/,/^<\/Directory>/{s/AllowOverride None/AllowOverride All/g}" /etc/httpd/conf/httpd.conf
+	if [ -f /etc/httpd/conf/httpd.conf ]
+	then	
+		sed -i "/^<Directory \"\/var\/www\/html\">/,/^<\/Directory>/{s/AllowOverride None/AllowOverride All/g}" /etc/httpd/conf/httpd.conf
+	fi
 	_exec_ YUM 	"systemctl enable httpd.service"
 	_exec_ YUM	"systemctl start httpd.service"
 	_exec_ DPKG	"systemctl enable apache2"
