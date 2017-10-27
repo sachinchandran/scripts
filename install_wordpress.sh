@@ -97,6 +97,7 @@ download_install_wp() {
 	mkdir -p /var/www/html
 	tar -C /var/www/html/ --strip-components=1 -zxvf latest.tar.gz && rm -f latest.tar.gz
 	cd /var/www/html
+	rm -f /var/www/html/index.html
 	mkdir wp-content/{uploads,cache}
 	chown apache:apache wp-content/{uploads,cache}
 }
