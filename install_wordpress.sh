@@ -130,8 +130,10 @@ open_firewall() {
 startup_apache() {
 	open_firewall
 	sed -i "/^<Directory \"\/var\/www\/html\">/,/^<\/Directory>/{s/AllowOverride None/AllowOverride All/g}" /etc/httpd/conf/httpd.conf
-	systemctl enable httpd.service
-	systemctl start httpd.service
+	_exec_ YUM 	"systemctl enable httpd.service"
+	_exec_ YUM	"systemctl start httpd.service"
+	_exec_ DPKG	"systemctl enable apache2"
+	_exec_ DPKG	"systemctl start apache2"
 }
 
 initialize_wp() {
