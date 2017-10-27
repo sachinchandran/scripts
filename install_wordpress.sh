@@ -6,7 +6,7 @@ _error() {
 }
 
 ########
-# This script is tested on CentOS 7
+# This script is tested on CentOS 7 and Debian 9
 #######
 
 ## Detect OS Type
