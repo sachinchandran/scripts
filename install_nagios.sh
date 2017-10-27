@@ -128,8 +128,10 @@ install_nagios() {
 
 	/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
 
+	_exec_ DPKG	"cp /etc/apache2/nagios.conf /etc/apache2/sites-available/nagios.conf"
 	_exec_ DPKG	"a2ensite nagios"
 	_exec_ DPKG	"a2enmod rewrite cgi"
+	_exec_ DPKG	"systemctl reload apache2"
 
 	_exec_ YUM	"/etc/init.d/nagios start"
 	_exec_ YUM	"systemctl stop httpd"	
