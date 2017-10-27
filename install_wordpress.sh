@@ -6,7 +6,7 @@ _error() {
 }
 
 ########
-# This script is tested on CentOS 7
+# This script is tested on CentOS 7 and Debian 9
 #######
 
 ## Detect OS Type
@@ -51,11 +51,12 @@ install_a_package() {
 install_db() {
 	echo "Install DB..."
 	_exec_ YUM	"yum install -y mariadb-server"
-	_exec_ DPKG	"apt-get install software-properties-common"
-	_exec_ DPKG	"apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8"
-	_exec_ DPKG	"add-apt-repository 'deb [arch=amd64] http://www.ftp.saix.net/DB/mariadb/repo/10.1/debian stretch main'"
-	_exec_ DPKG	"apt-get update"
-	_exec_ DPKG	"DEBIAN_FRONTEND=noninteractive && apt-get install -y mariadb-server"
+	_exec_ DPKG	"apt-get install -y software-properties-common"
+	_exec_ DPKG	"apt-get install -y dirmngr"
+#	_exec_ DPKG	"apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8"
+#	_exec_ DPKG	"add-apt-repository 'deb [arch=amd64] http://www.ftp.saix.net/DB/mariadb/repo/10.1/debian stretch main'"
+#	_exec_ DPKG	"apt-get update"
+	_exec_ DPKG	"DEBIAN_FRONTEND=noninteractive && apt-get install -y mariadb-server mariadb-client"
 
 	_exec_ DPKG	"systemctl start mariadb"
 	_exec_ YUM	"systemctl start mariadb"
@@ -74,7 +75,11 @@ install_apache() {
 install_php() {
 	echo "Installing php..."
 	_exec_ YUM	"yum install -y php php-mysql"
-	_exec_ DPKG	"apt-get install -y php5-curl"
+	_exec_ DPKG	"apt-get install -y php7.0 libapache2-mod-php7.0 php7.0-mysql php7.0-gd php7.0-opcache"
+	_exec_ YUM 	"systemctl stop httpd"
+	_exec_ YUM	"systemctl start httpd"
+	_exec_ DPKG	"systemctl stop apache2"
+	_exec_ DPKG	"systemctl start apache2"
 }
 
 setup_wp_mysql_user() {
@@ -92,6 +97,7 @@ download_install_wp() {
 	mkdir -p /var/www/html
 	tar -C /var/www/html/ --strip-components=1 -zxvf latest.tar.gz && rm -f latest.tar.gz
 	cd /var/www/html
+	rm -f /var/www/html/index.html
 	mkdir wp-content/{uploads,cache}
 	chown apache:apache wp-content/{uploads,cache}
 }
@@ -128,9 +134,19 @@ open_firewall() {
 
 startup_apache() {
 	open_firewall
-	sed -i "/^<Directory \"\/var\/www\/html\">/,/^<\/Directory>/{s/AllowOverride None/AllowOverride All/g}" /etc/httpd/conf/httpd.conf
-	systemctl enable httpd.service
-	systemctl start httpd.service
+	if [ -f /etc/httpd/conf/httpd.conf ]
+	then	
+		sed -i "/^<Directory \"\/var\/www\/html\">/,/^<\/Directory>/{s/AllowOverride None/AllowOverride All/g}" /etc/httpd/conf/httpd.conf
+	fi
+	_exec_ YUM 	"systemctl enable httpd.service"
+	_exec_ YUM	"systemctl start httpd.service"
+	_exec_ DPKG	"systemctl enable apache2"
+	_exec_ DPKG	"systemctl start apache2"
+}
+
+initialize_wp() {
+	current_ip=`ip route get 8.8.8.8 | awk 'NR==1 {print $NF}'`
+	curl --data "user_name=grab&admin_password=Gr@bpass001&admin_password2=Gr@bpass001&admin_email=test@noemail.com&blog_public=checked&Submit=submit" "http://${current_ip}/wp-admin/install.php?step=2"
 }
 
 install_wordpress() {
@@ -143,6 +159,7 @@ install_wordpress() {
 	configure_wp $WP_DB_PASS
 	setup_htaccess
 	startup_apache
+	initialize_wp
 }
 
 mysql_secure() {
@@ -188,27 +205,185 @@ echo "$SECURE_MYSQL"
 ### Main
 ###
 
-os_type_detect
-echo $_OSTYPE
+initialize() {
+	os_type_detect
+        echo $_OSTYPE
 
-update_packages
-install_a_package "telnet"
+        update_packages
+        install_a_package "telnet"
+        install_a_package "expect"
+        install_a_package "curl"
+        install_a_package "wget"
+	is_initialized=1
+}
 
-####### Remove existing DB
+usage() {
+	echo "Usage:"
+	echo "	./install_wordpress.sh"
+	echo "		-m|--mysql 	Install Mysql"
+	echo " 		-a|--apache	Install Apache"
+	echo " 		-p|--php      	Install PHP"
+	echo "		-h|--help 	Print this message"
+	echo "		--mysqlrootpassword=<mysql root password>	MySQL root password(mandatory)"
+	echo "		--wpdbpassword=<wordpress db password>		MySQL DB password for Wordpress"
+	echo "	Example: ./install_wordpress.sh --mysql --apache --php --mysqlrootpassword=foobar123 --wpdbpassword=foobar345"
+}
 
-install_db
+main() {
+	
+	if [ "$#" -eq 0 ]
+	then
+		usage
+		exit 1
+	fi
+	echo "$@"
 
-install_a_package "expect"
+	is_initialized=0
+	inst_mysql=0
+	inst_apache=0
+	inst_php=0
 
-mysql_password="$1"
-wordpress_db_password="$2"
+	while :;
+	do
+		case $1 in 
+			-h|-\?|--help)
+				usage
+				exit 0
+				;;
+			-m|--mysql)
+				inst_mysql=1
+				shift
+				;;
+			-a|--apache)
+				inst_apache=1
+				shift
+				;;
+			-p|--php)
+				inst_php=1
+				shift
+				;;
+			--mysqlrootpassword=?*)
+				mysqlrootpassword=${1#*=}
+				shift
+				;;
+			--mysqlrootpassword=)
+				printf '%s\n' 'ERROR: --mysqlrootpassword should have a value!' >&2
+				usage
+				exit 1
+				;;
+			--mysqlrootpassword)
+				printf '%s\n' 'ERROR: --mysqlrootpassword should have a value!' >&2
+				usage
+				exit 1
+				;;
+			--wpdbpassword=?*)
+				wpdbpassword=${1#*=}
+				shift
+				;;
+			--wpdbpassword=)
+				printf '%s\n' 'ERROR: --wpdbpassword should have a value!' >&2
+				usage
+				exit 1
+				;;
+			--wpdbpassword)
+				printf '%s\n' 'ERROR: --wpdbpassword should have a value!' >&2
+                                usage
+                                exit 1
+                                ;;
+			--)
+            			shift
+            			break
+            			;;
+        		-?*)
+            			printf '%s\n' 'WARN: Unknown option (ignored): %s\n' >&2
+				usage
+				exit 1
+            			;;
+        		*)
+            			break
+    		esac
 
-mysql_secure $mysql_password
+    		#shift
+	done
 
-install_a_package "curl"
-install_a_package "wget"
+#	while getopts 'mysql,apache,php,help' flag; do
+#		case "${flag}" in
+#			mysql)	if [ ${is_initialized} -eq 0 ]
+#				then
+#					initialize
+#				fi
+#				install_db
+#				mysql_password="$1"
+#				mysql_secure $mysql_password
+#				;;
+#			apache)	if [ ${is_initialized} -eq 0 ]
+#                                then
+#                                        initialize
+#                                fi
+#				install_apache
+#				;;
+#			php) 	if [ ${is_initialized} -eq 0 ]
+#                                then
+#                                        initialize
+#                                fi
+#				install_php
+#				;;
+#			help)	usage
+#				exit 0
+#				;;
+#			*)	usage
+#				exit 1
+#				;;
+#		esac
+#	done
+#	install_db
 
-install_apache
-install_php
+#	mysql_password="$1"
 
-install_wordpress $mysql_password $wordpress_db_password
+	if [ -z ${mysqlrootpassword} ]
+	then
+		printf '%s\n' 'ERROR: mysqlrootpassword is not defined!' >&2
+		usage
+		exit 1
+	fi
+
+	if [ -z ${wpdbpassword} ]
+	then
+		printf '%s\n' 'ERROR: wpdbpassword is not defined!' >&2
+		usage
+		exit 1
+	fi
+
+	if [ ${is_initialized} -eq 0 ]
+        then
+       		initialize
+        fi
+
+	if [ ${inst_mysql} -eq 1 ]
+	then
+		install_db
+		mysql_secure $mysqlrootpassword
+	fi
+	
+	if [ ${inst_apache} -eq 1 ]
+	then
+		install_apache
+	fi
+	
+	if [ ${inst_php} -eq 1 ]
+	then
+		install_php
+	fi
+
+
+#	wordpress_db_password="$2"
+
+#	mysql_secure $mysql_password
+
+#	install_apache
+#	install_php
+
+	install_wordpress $mysqlrootpassword $wpdbpassword
+}
+
+main "$@"
