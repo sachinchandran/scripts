@@ -75,7 +75,7 @@ install_apache() {
 install_php() {
 	echo "Installing php..."
 	_exec_ YUM	"yum install -y php php-mysql"
-	_exec_ DPKG	"apt-get install -y php5-curl"
+	_exec_ DPKG	"apt-get install -y php7.0 libapache2-mod-php7.0 php7.0-mysql php7.0-gd php7.0-opcache"
 }
 
 setup_wp_mysql_user() {
