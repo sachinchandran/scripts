@@ -223,8 +223,9 @@ usage() {
 	echo " 		-a|--apache	Install Apache"
 	echo " 		-p|--php      	Install PHP"
 	echo "		-h|--help 	Print this message"
-	echo "		--mysqlrootpassword	MySQL root password(mandatory)"
-	echo "		--wpdbpassword		MySQL DB password for Wordpress"
+	echo "		--mysqlrootpassword=<mysql root password>	MySQL root password(mandatory)"
+	echo "		--wpdbpassword=<wordpress db password>		MySQL DB password for Wordpress"
+	echo "	Example: ./install_wordpress.sh --mysql --apache --php --mysqlrootpassword=foobar123 --wpdbpassword=foobar345"
 }
 
 main() {
